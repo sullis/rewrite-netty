@@ -110,4 +110,30 @@ class EventLoopGroupToMultiThreadIoEventLoopGroupTest implements RewriteTest {
           )
         );
     }
+
+    @Test
+    void replaceDefaultEventLoopGroup() {
+        rewriteRun(
+          //language=java
+          java(
+            """
+              import io.netty.channel.DefaultEventLoopGroup;
+              import io.netty.channel.EventLoopGroup;
+
+              class Test {
+                  EventLoopGroup group4 = new DefaultEventLoopGroup();
+              }
+              """,
+            """
+              import io.netty.channel.EventLoopGroup;
+              import io.netty.channel.MultiThreadIoEventLoopGroup;
+              import io.netty.channel.local.LocalIoHandler;
+
+              class Test {
+                  EventLoopGroup group4 = new MultiThreadIoEventLoopGroup(LocalIoHandler.newFactory());
+              }
+              """
+          )
+        );
+    }
 }

@@ -17,6 +17,7 @@ package org.openrewrite.java.netty;
 
 import com.google.errorprone.refaster.annotation.AfterTemplate;
 import com.google.errorprone.refaster.annotation.BeforeTemplate;
+import io.netty.channel.DefaultEventLoopGroup;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -83,4 +84,21 @@ public class EventLoopGroupToMultiThreadIoEventLoopGroup {
             return new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         }
     }
+
+  @RecipeDescriptor(
+      name = "Replace `DefaultEventLoopGroup` with `MultiThreadIoEventLoopGroup`",
+      description = "Replace `new DefaultEventLoopGroup()` with `new MultiThreadIoEventLoopGroup(LocalIoHandler.newFactory())`.",
+      tags = {"netty", "nio"}
+  )
+  public static class DefaultEventLoopGroupFactory {
+    @BeforeTemplate
+    EventLoopGroup before() {
+      return new DefaultEventLoopGroup();
+    }
+
+    @AfterTemplate
+    EventLoopGroup after() {
+      return new MultiThreadIoEventLoopGroup(LocalIoHandler.newFactory());
+    }
+  }
 }
