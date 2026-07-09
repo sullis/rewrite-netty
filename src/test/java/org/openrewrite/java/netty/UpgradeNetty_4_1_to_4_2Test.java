@@ -22,8 +22,11 @@ import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.openrewrite.gradle.Assertions.buildGradle;
+import static org.openrewrite.gradle.toolingapi.Assertions.withToolingApi;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.maven.Assertions.pomXml;
+import static org.openrewrite.properties.Assertions.properties;
 
 class UpgradeNetty_4_1_to_4_2Test implements RewriteTest {
     @Override
@@ -104,6 +107,60 @@ class UpgradeNetty_4_1_to_4_2Test implements RewriteTest {
               .contains("<classifier>linux-aarch_64</classifier>")
               .contains("netty-buffer")
               .actual()))
+        );
+    }
+
+    @Test
+    void changeNettyBomVersion_gradle() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          buildGradle(
+            """
+              plugins {
+                id 'java'
+              }
+              repositories {
+                mavenCentral()
+              }
+              dependencies {
+                implementation(platform("io.netty:netty-bom:4.1.110.Final"))
+              }
+              """,
+            spec -> spec.after(file -> assertThat(file)
+              .describedAs("Expected netty-bom version 4.2.x")
+              .contains("platform(\"io.netty:netty-bom:")
+              .containsPattern("4\\.2\\.\\d+\\.Final")
+              .doesNotContainPattern("4\\.1\\.\\d+\\.Final")
+              .actual()))
+        );
+    }
+
+    @Test
+    void changeNettyBomVersion_gradle_property() {
+        rewriteRun(
+          spec -> spec.beforeRecipe(withToolingApi()),
+          properties(
+            """
+              nettyVersion=4.1.110.Final
+              """,
+            spec -> spec.path("gradle.properties")
+              .after(file -> assertThat(file)
+                .describedAs("Expected netty-bom version 4.2.x")
+                .containsPattern("4\\.2\\.\\d+\\.Final")
+                .doesNotContainPattern("4\\.1\\.\\d+\\.Final")
+                .actual())),
+          buildGradle(
+            """
+              plugins {
+                id 'java'
+              }
+              repositories {
+                mavenCentral()
+              }
+              dependencies {
+                implementation(platform("io.netty:netty-bom:$nettyVersion"))
+              }
+              """)
         );
     }
 }

@@ -28,9 +28,13 @@ dependencies {
     compileOnly("io.netty:netty-all:4.2.+")
 
     testImplementation("org.openrewrite:rewrite-java-21")
+    testImplementation("org.openrewrite:rewrite-gradle")
+    testImplementation("org.openrewrite.gradle.tooling:model:$rewriteVersion")
     testImplementation("org.openrewrite:rewrite-maven")
+    testImplementation("org.openrewrite:rewrite-properties")
     testImplementation("org.openrewrite:rewrite-test")
 
+    testRuntimeOnly(gradleApi())
     testRuntimeOnly("org.jboss.netty:netty:3.2.+")
     testRuntimeOnly("io.netty.incubator:netty-incubator-transport-classes-io_uring:0.0.26.Final")
     testRuntimeOnly("org.openrewrite.recipe:rewrite-spring:6.25.1")
