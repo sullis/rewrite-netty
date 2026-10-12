@@ -48,3 +48,10 @@ recipeList:
       newPackageName: io.netty.channel.uring
       recursive: true
   - org.openrewrite.java.netty.EventLoopGroupToMultiThreadIoEventLoopGroupRecipes
+  - org.openrewrite.java.netty.SelfSignedCertificateToCertificateBuilder
+  - org.openrewrite.java.dependencies.AddDependency:
+      groupId: io.netty
+      artifactId: netty-pkitesting
+      version: 4.2.x
+      onlyIfUsing: io.netty.handler.ssl.util.SelfSignedCertificate
+      acceptTransitive: true

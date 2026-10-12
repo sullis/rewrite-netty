@@ -17,12 +17,15 @@ package org.openrewrite.java.netty;
 
 import org.junit.jupiter.api.Test;
 import org.openrewrite.DocumentExample;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.test.RecipeSpec;
 import org.openrewrite.test.RewriteTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.java.Assertions.java;
+import static org.openrewrite.java.Assertions.mavenProject;
+import static org.openrewrite.java.Assertions.srcTestJava;
 import static org.openrewrite.maven.Assertions.pomXml;
 
 class UpgradeNetty_4_1_to_4_2Test implements RewriteTest {
@@ -104,6 +107,62 @@ class UpgradeNetty_4_1_to_4_2Test implements RewriteTest {
               .contains("<classifier>linux-aarch_64</classifier>")
               .contains("netty-buffer")
               .actual()))
+        );
+    }
+
+    @Test
+    void replaceSelfSignedCertificateAndAddPkitestingDependency() {
+        rewriteRun(
+          spec -> spec.parser(JavaParser.fromJavaVersion().classpathFromResources(new InMemoryExecutionContext(),
+            "netty-handler", "netty-pkitesting")),
+          mavenProject("example",
+            srcTestJava(
+              //language=java
+              java(
+                """
+                  import io.netty.handler.ssl.util.SelfSignedCertificate;
+
+                  class SslTest {
+                      void test() throws Exception {
+                          SelfSignedCertificate ssc = new SelfSignedCertificate();
+                      }
+                  }
+                  """,
+                """
+                  import io.netty.pkitesting.CertificateBuilder;
+                  import io.netty.pkitesting.X509Bundle;
+
+                  class SslTest {
+                      void test() throws Exception {
+                          X509Bundle ssc = new CertificateBuilder().subject("CN=localhost").setIsCertificateAuthority(true).rsa2048().buildSelfSigned();
+                      }
+                  }
+                  """
+              )
+            ),
+            pomXml(
+              //language=xml
+              """
+                <project>
+                    <modelVersion>4.0.0</modelVersion>
+                    <groupId>org.example</groupId>
+                    <artifactId>example</artifactId>
+                    <version>1.0.0</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>io.netty</groupId>
+                            <artifactId>netty-handler</artifactId>
+                            <version>4.1.100.Final</version>
+                        </dependency>
+                    </dependencies>
+                </project>
+                """,
+              spec -> spec.after(pom -> assertThat(pom)
+                .containsPattern("<artifactId>netty-pkitesting</artifactId>\\s*<version>4\\.2\\.\\d+\\.Final</version>\\s*<scope>test</scope>")
+                .doesNotContainPattern("4\\.1\\.\\d+\\.Final")
+                .actual())
+            )
+          )
         );
     }
 }
